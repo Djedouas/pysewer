@@ -36,7 +36,8 @@ class Preprocessing:
 
 @dataclass
 class Optimization:
-    inhabitants_dwelling: int
+    inhabitants_dwelling_attribute_name: str
+    default_inhabitants_dwelling: int
     daily_wastewater_person: float
     peak_factor: float
     min_slope: float

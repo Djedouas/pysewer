@@ -346,7 +346,9 @@ def calculate_hydraulic_parameters(
 
 def estimate_peakflow(
     G: nx.Graph,
-    inhabitants_dwelling: int = DEFAULT_CONFIG.optimization.inhabitants_dwelling,
+    # inhabitants_dwelling: int = DEFAULT_CONFIG.optimization.inhabitants_dwelling,
+    inhabitants_dwelling_attribute_name: str = DEFAULT_CONFIG.optimization.inhabitants_dwelling_attribute_name,
+    default_inhabitants_dwelling: int = DEFAULT_CONFIG.optimization.default_inhabitants_dwelling,
     daily_wastewater_person: float = DEFAULT_CONFIG.optimization.daily_wastewater_person,
     peak_factor: float = DEFAULT_CONFIG.optimization.peak_factor,
 ):
@@ -357,8 +359,10 @@ def estimate_peakflow(
     ----------
     G : networkx.Graph
         The graph to estimate peakflow for.
-    inhabitants_dwelling : int
-        The number of inhabitants per dwelling.
+    inhabitants_dwelling_attribute_name : str
+        The attribute name with the number of inhabitants per dwelling.
+    default_inhabitants_dwelling : int
+        The default number of inhabitants per dwelling to use if inhabitants_dwelling_attribute_name is empty
     daily_wastewater_person : float
         The daily wastewater generated per person in m³.
     peak_factor : float, optional
@@ -371,10 +375,16 @@ def estimate_peakflow(
     """
     for n in G.nodes():
         upstream_buildings = get_upstream_nodes(G, n, "node_type", "building")
-        upstream_daily = (
-            len(upstream_buildings) * inhabitants_dwelling * daily_wastewater_person
-        )
-        upstream_pe = len(upstream_buildings) * inhabitants_dwelling
+
+        if inhabitants_dwelling_attribute_name != "":
+            upstream_pe = 0
+            for upstream_building in upstream_buildings:
+                inhabitant_number = float(G.nodes[upstream_building][inhabitants_dwelling_attribute_name])
+                upstream_pe += inhabitant_number
+        else:
+            upstream_pe = len(upstream_buildings) * default_inhabitants_dwelling
+        upstream_daily = upstream_pe * daily_wastewater_person
+        
         peak_flow = ((upstream_daily / 24) * peak_factor) / 3600
         atr = {
             n: {
